@@ -393,7 +393,7 @@ class aiohtml:
             hostn = parse.hostname
             paths = parse.path.strip('/')
 
-            varurl = f"{hostn.replace('.', '-')}{paths.replace('/', '-')}"
+            varurl = f"{hostn.replace('.', '-')}-{paths.replace('/', '-')}"
             name = self.urls.get(url)
             if name:
                 jsn = json.dumps(name, indent=4, ensure_ascii=False)
