@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netcrawl"
+version = "1.0"
+description = "Netcrawl - Network crawler by shine"
+requires-python = ">=3.11"
+authors = [
+    {name = "Shine"}
+]
+
+[project.scripts]
+netcrawl = "netcrawl.__main__:setcrawl"
