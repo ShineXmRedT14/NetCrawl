@@ -61,7 +61,6 @@ class aiohtml:
         self.url = [url]
         self.curl = []
         self.params = params
-        self.pos = 1
         self.netparam = {
             'deep': 1,
             'time': 1.0,
@@ -390,12 +389,16 @@ class aiohtml:
         except Exception as e:logging.error(ferr(e), exc_info=True)
     async def aiojson(self, url: str) -> None:
         try:
+            parse = urlparse(url)
+            hostn = parse.hostname
+            paths = parse.path.strip('/')
+
+            varurl = f"{hostn.replace('.', '-')}{paths.replace('/', '-')}"
             name = self.urls.get(url)
             if name:
                 jsn = json.dumps(name, indent=4, ensure_ascii=False)
                 async with self.lock:
-                    async with aiofiles.open(f"netcrawl/info/{self.pos}.json", "w", encoding="utf-8") as jf:
+                    async with aiofiles.open(f"netcrawl/info/{varurl}.json", "w", encoding="utf-8") as jf:
                         await jf.write(jsn)
-                    self.pos += 1
                     self.urls[url] = {}
         except Exception as e:logging.error(ferr(e), exc_info=True)
