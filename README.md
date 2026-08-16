@@ -53,7 +53,7 @@ netcrawl -u https://example.com -d 5 -http 8 -AL
 
 ## Output
 
-Each crawled URL is saved as a JSON file (e.g. `hostname-path1-path2.json`, `hostname-path0-path1-path3.json`, ...) In the /netcrawl/info/* path
+Each crawled URL is saved as a JSON file (e.g. `hostname-com-path1-path2.json`, `hostname-org-path0-path1-path3.json`, ...) In the /netcrawl/info/* path
 
 ## Uninstall
 
