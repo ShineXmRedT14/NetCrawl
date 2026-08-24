@@ -4,7 +4,6 @@ import os
 import shutil
 import importlib.util as ifl
 
-from netcrawl.util.utils import ferr
 from netcrawl.config.cnf import dependencies
 
 def uninstall() -> None:
@@ -25,8 +24,8 @@ def uninstall() -> None:
                     shutil.rmtree(pwdir)
         if ifl.find_spec("netcrawl") is not None:
             subprocess.run(["pip", "uninstall", "netcrawl"], shell=True, timeout=60, check=True)
-    except subprocess.CalledProcessError as e:print(ferr(e), exc_info=True)
-    except Exception as e:print(ferr(e), exc_info=True)
+    except subprocess.CalledProcessError as e:print(e, exc_info=True)
+    except Exception as e:print(e, exc_info=True)
 
 if __name__ == "__main__":
     uninstall()
