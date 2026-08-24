@@ -3,12 +3,13 @@ import logging
 import sys
 import asyncio
 
+from netcrawl.util.utils import ferr, pather
+from pathlib import Path
+
 logging.basicConfig(
-    filename="netcrawl/logs/netcrawl.log",
+    filename=f"{pather(str(Path.cwd()))}/netcrawl/logs/err.log",
     level=logging.ERROR
 )
-
-from netcrawl.util.utils import ferr
 
 def setcrawl():
     try:
@@ -29,16 +30,14 @@ def setcrawl():
         from netcrawl.core.core import asynl
         from netcrawl.core.params import NetCrawlParams
 
-        context = NetCrawlParams(
-            deep = 0,
-            time = 0.0,
-            http = 0,
-            js = 0
-        )
+        context = NetCrawlParams()
 
         if args.low:context.time = 0.2
         elif args.mid:context.time = 0.05
         elif args.high:context.time = 0.02
+        elif args.custom:
+            if int(args.custom) != 0:
+                context.time = round(int(args.custom)/1000)
         if args.deep:context.deep = int(args.deep)
         if args.http:context.http = int(args.http)
         if args.js:context.js = int(args.js)
@@ -49,6 +48,6 @@ def setcrawl():
             asyncio.run(asynl(args.url, context))
             sys.exit(0)
         else:
-            print(f"{Fore.LIGHTRED_EX}Invalid Arguments\n -> -u <url> and -d int:<deep>, -http int:<http>, -js int:<js>, -AL, -AM, -AH if need\n -> For help -h or --help{Fore.LIGHTWHITE_EX}", flush=True)
+            print(f"{Fore.LIGHTRED_EX}Invalid Arguments\n -> -u <url> and -d int:<deep>, -http int:<http>, -js int:<js>, -AL, -AM, -AH, -cd int:<delay> if need\n -> For help -h or --help{Fore.LIGHTWHITE_EX}", flush=True)
             sys.exit(0)
     except Exception as e:logging.error(ferr(e), exc_info=True)
