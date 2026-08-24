@@ -33,6 +33,21 @@ class NetCrawlAgent:
     def view(self) -> dict:
         return self.viewport
 
+def pather(cwd: str) -> str:
+    try:
+        if cwd.endswith('crawler'):
+            paths = "./src"
+        elif cwd.endswith('src'):
+            paths = "."
+        elif cwd.endswith('netcrawl'):
+            paths = ".."
+        elif not cwd.endswith('crawler'):
+            paths = "./crawler/src"
+        else: raise "Error/Path/NotFound"
+
+        return paths
+    except Exception as e:logging.error(ferr(e), exc_info=True)
+
 def ferr(e: str) -> str:
     try:
         return f"{datetime.datetime.now().strftime('%H:%M:%S')} - {e}"
