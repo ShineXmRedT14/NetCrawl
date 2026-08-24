@@ -7,16 +7,19 @@ import json
 import ssl
 import aiofiles
 import socket as sc
+import tree_sitter_javascript as tsjs
 
+from tree_sitter import Language, Parser, Query, QueryCursor
 from aiohttp import ClientError, ClientConnectionError
 from dns.resolver import NXDOMAIN, NoAnswer, NoNameservers
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
-from netcrawl.config.cnf import dnsr, cnfdeep, cnfhttp, cnfjs, cnftime, cform
-from netcrawl.util.utils import ferr, NetCrawlAgent
+from netcrawl.config.cnf import dnsr, cnfdeep, cnfhttp, cnfjs, cnftime, cform, qtreesit
+from netcrawl.util.utils import ferr, NetCrawlAgent, pather
 from netcrawl.core.render import render
 from netcrawl.core.params import NetCrawlParams
 from playwright.async_api import async_playwright, Browser
+from pathlib import Path
 
 warnings.filterwarnings('ignore', category=XMLParsedAsHTMLWarning)
 
@@ -116,7 +119,7 @@ class aiohtml:
                 backlist = []
                 for nurl in self.curl:
                     if nurl not in self.urls:
-                        if not nurl.lower().endswith(cform) and urlparse(nurl).netloc == self.netloc:backlist.append(nurl)
+                        if not nurl.lower().endswith(cform) and self.netloc in urlparse(nurl).netloc:backlist.append(nurl)
 
                 self.url.clear()
                 self.url.extend(backlist)
@@ -139,17 +142,18 @@ class aiohtml:
                             resp = await asyncio.to_thread(jstry, html, rs)
 
                             if not resp:
-                                await self.aioparse(html, nurl, rs.status)
+                                await self.aioparse(html, nurl, rs.status, session, agent)
                             else:
                                 nresp = await render(nurl, pwr, self.jssem, agent, browser)
-                                chtml = nresp.get('html')
-                                cstat = nresp.get('status')
-                                if chtml and cstat and (chtml != "??? / Maybe Banned" or cstat != "??? / Maybe Banned"):await self.aioparse(chtml, nurl, cstat)
+                                if nresp:
+                                    chtml = nresp.get('html')
+                                    cstat = nresp.get('status')
+                                    if chtml and cstat and (chtml != "??? / Maybe Banned" or cstat != "??? / Maybe Banned"):await self.aioparse(chtml, nurl, cstat, session, agent)
                 except (TimeoutError, ClientError, ClientConnectionError, asyncio.TimeoutError) as e:logging.warning(ferr(e), exc_info=True)
             await self.aiojson(nurl)
             await asyncio.sleep(self.netparam['time'])
         except Exception as e:logging.error(ferr(e), exc_info=True)
-    async def aioparse(self, html: str, url: str, status: int) -> None:
+    async def aioparse(self, html: str, url: str, status: int, session, agent: NetCrawlAgent) -> None:
         try:
             soup = BeautifulSoup(html, 'lxml')
 
@@ -163,6 +167,8 @@ class aiohtml:
             metas = soup.find_all('meta')
             styles = soup.find_all('link', rel="stylesheet")
             dstyles = soup.find_all('style')
+            imgs = soup.find_all('img')
+            videos = soup.find_all('video')
 
             shtml = html.split('\n')
             self.urls[url]['status'] = str(status)
@@ -227,20 +233,36 @@ class aiohtml:
 
             if js:
                 self.urls[url].setdefault('script', {})
-                self.urls[url]['script'].setdefault('code', [])
-                self.urls[url]['script'].setdefault('links', [])
+                self.urls[url]['script'].setdefault('in-html', {})
+                self.urls[url]['script'].setdefault('src', {})
+                self.urls[url]['script']['in-html'].setdefault('parsed', [])
+                self.urls[url]['script']['in-html'].setdefault('code', [])
+                self.urls[url]['script']['src'].setdefault('links', [])
+                self.urls[url]['script']['src'].setdefault('parsed', [])
+                self.urls[url]['script']['src'].setdefault('code', [])
 
                 for njs in js:
                     src = njs.get('src')
 
-                    if src:self.urls[url]['script']['links'].append(src)
+                    if src:
+                        self.urls[url]['script']['src']['links'].append(src)
+                        parse = urlparse(src)
+
+                        if not parse.scheme:
+                            purl = urljoin(url, src)
+                        else:purl = src
+
+                        await self.aioscript(purl, session, agent, self.urls[url]['script']['src'])
                     else:
                         snjs = njs.text.split('\n')
 
                         if snjs:
                             for gnjs in snjs:
-                                self.urls[url]['script']['code'].append(gnjs)
-                        else:self.urls[url]['script']['code'].append(njs.text)
+                                self.urls[url]['script']['in-html']['code'].append(gnjs)
+                        else:
+                            self.urls[url]['script']['in-html']['code'].append(njs.text)
+                            
+                        await asyncio.to_thread(self.aiojsparse, self.urls[url]['script']['in-html'], njs.text, url)
                 
             if styles or dstyles:
                 self.urls[url].setdefault('style', {})
@@ -284,6 +306,37 @@ class aiohtml:
                     if prop:self.urls[url]['meta']['property'].append(prop)
                     if charset:self.urls[url]['meta']['charset'].append(charset)
                     if equ:self.urls[url]['meta']['http-equiv'].append(equ)
+
+            if imgs:
+                self.urls[url].setdefault('img', {})
+                self.urls[url]['img'].setdefault('raw', [])
+                self.urls[url]['img'].setdefault('links', [])
+
+                for img in imgs:
+                    self.urls[url]['img']['raw'].append(str(img))
+
+                    imgsrc = img.get('src')
+                    if imgsrc:self.urls[url]['img']['links'].append(imgsrc)
+
+            if videos:
+                self.urls[url].setdefault('video', {})
+                self.urls[url]['video'].setdefault('raw', [])
+                self.urls[url]['video'].setdefault('source', {})
+                self.urls[url]['video']['source'].setdefault('raw', [])
+                self.urls[url]['video']['source'].setdefault('links', [])
+
+                for vid in videos:
+                    self.urls[url]['video']['raw'].append(str(vid))
+
+                    vidsrc = vid.find_all('source')
+
+                    if vidsrc:
+                        for vds in vidsrc:
+                            self.urls[url]['video']['source']['raw'].append(str(vds))
+
+                            vdssrc = vds.get('src')
+                            if vdssrc:self.urls[url]['video']['source']['links'].append(vdssrc)
+
         except Exception as e:logging.error(ferr(e), exc_info=True)
     async def aiorules(self, curl: str, session, agent: NetCrawlAgent) -> None:
         try:
@@ -387,6 +440,57 @@ class aiohtml:
                         if shr:self.urls[url]['ssl']['parameter'] = shr
                         if shs:self.urls[url]['ssl']['hostname'] = shs
         except Exception as e:logging.error(ferr(e), exc_info=True)
+    async def aioscript(self, url: str, session, agent: NetCrawlAgent, dsrc: dict) -> None:
+        try:
+            async with session.get(url=url, timeout=5, headers=agent.all) as rs:
+                dsrc['status'] = rs.status
+
+                try:
+                    async with asyncio.timeout(5):
+                        script = await rs.text()
+                except (asyncio.TimeoutError, TimeoutError) as e:logging.warning(ferr(e))
+
+                if script:
+                    sjs = script.split('\n')
+
+                    if sjs:
+                        for sjsline in sjs:
+                            dsrc['code'].append(sjsline.replace('\t', '.'))
+                    else:dsrc['code'] = script
+
+                    await asyncio.to_thread(self.aiojsparse, dsrc, script, url)
+        except Exception as e:logging.error(ferr(e), exc_info=True)
+    def aiojsparse(self, dsrc: dict, script: str, src: str) -> None:
+        try:
+            jen = script.encode("utf-8")
+            jsl = Language(tsjs.language())
+            parser = Parser(jsl)
+            tree = parser.parse(jen)
+
+            qercap = Query(jsl, qtreesit)
+            cursor = QueryCursor(qercap)
+            qcap = cursor.captures(tree.root_node)
+            cap = {
+                'src': src,
+                'info': []
+            }
+            ccap = {}
+
+            for node, tag in qcap:
+                ntext = jen[node.start_byte:node.end_byte].decode("utf-8")
+
+                if tag == "func.name":
+                    ccap['func'] = ntext
+
+                elif tag == "func.args":
+                    ccap['args'] = ntext
+
+                    if ccap:
+                        cap['info'].append(ccap.copy())
+                    ccap.clear()
+
+            dsrc['parsed'].append(cap)
+        except Exception as e:logging.error(ferr(e), exc_info=True)
     async def aiojson(self, url: str) -> None:
         try:
             parse = urlparse(url)
@@ -398,7 +502,7 @@ class aiohtml:
             if name:
                 jsn = json.dumps(name, indent=4, ensure_ascii=False)
                 async with self.lock:
-                    async with aiofiles.open(f"netcrawl/info/{varurl}.json", "w", encoding="utf-8") as jf:
+                    async with aiofiles.open(f"{pather(str(Path.cwd()))}/netcrawl/info/{varurl}.json", "w", encoding="utf-8") as jf:
                         await jf.write(jsn)
                     self.urls[url] = {}
         except Exception as e:logging.error(ferr(e), exc_info=True)
