@@ -38,6 +38,7 @@ netcrawl -u <url> [options]
 | `-AL` | `--low` | Low aggressiveness (longer delay between requests) |
 | `-AM` | `--mid` | Medium aggressiveness |
 | `-AH` | `--high` | High aggressiveness (shorter delay) |
+| `-cd` | `--custom` | Custom Delay |
 
 ### Defaults
 
