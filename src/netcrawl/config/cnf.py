@@ -2,13 +2,15 @@ from colorama import Fore
 
 dependencies = [
     "aiohttp",
-    "bs4",
+    "bs4==0.0.2",
     "dnspython",
     "playwright",
-    "rich",
-    "colorama",
-    "aiofiles",
-    'lxml'
+    "rich==14.2.0",
+    "colorama==0.4.6",
+    "aiofiles==24.1.0",
+    'lxml==6.0.2',
+    'tree-sitter==0.26.0',
+    'tree-sitter-javascript'
 ]
 
 dnsr = [
@@ -24,7 +26,7 @@ cform = (
     '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.webp', '.css', '.js', '.json', '.xml', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.zip', '.rar'
 )
 
-version = "1.0"
+version = "1.1"
 epitext = f"""
 {Fore.LIGHTRED_EX}-h / {Fore.LIGHTYELLOW_EX}--help / {Fore.LIGHTGREEN_EX}Get commands/help
 {Fore.LIGHTRED_EX}-u / {Fore.LIGHTYELLOW_EX}--url / {Fore.LIGHTGREEN_EX}URL from where crawler start
@@ -34,12 +36,13 @@ epitext = f"""
 {Fore.LIGHTRED_EX}-AL / {Fore.LIGHTYELLOW_EX}--low / {Fore.LIGHTGREEN_EX}Crawler/agressive speed/Low
 {Fore.LIGHTRED_EX}-AM / {Fore.LIGHTYELLOW_EX}--mid / {Fore.LIGHTGREEN_EX}Crawler/agressive speed/Mid
 {Fore.LIGHTRED_EX}-AH / {Fore.LIGHTYELLOW_EX}--high / {Fore.LIGHTGREEN_EX}Crawler/agressive speed/High
+{Fore.LIGHTRED_EX}-cd / {Fore.LIGHTYELLOW_EX}--custom / {Fore.LIGHTGREEN_EX}Custom Delay
 {Fore.LIGHTWHITE_EX}
 """
 
-lflag = ["-h", "-u", "-d", "-http", "-js", "-AL", "-AM", "-AH"]
-bflag = ["--help", "--url", "--deep", "--http", "--js", "--low", "--mid", "--high"]
-hflag = ["Get commands/help", "URL from where crawler start", "Scan deep", "Async I/O Limit for static requests", "Async I/O Limit for hard javascript render from playwright module", "URL (sites) Limit", "Crawler/agressive speed/Low", "Crawler/agressive speed/Mid", "Crawler/agressive speed/High"]
+lflag = ["-h", "-u", "-d", "-http", "-js", "-AL", "-AM", "-AH", "-cd"]
+bflag = ["--help", "--url", "--deep", "--http", "--js", "--low", "--mid", "--high", "--custom"]
+hflag = ["Get commands/help", "URL from where crawler start", "Scan deep", "Async I/O Limit for static requests", "Async I/O Limit for hard javascript render from playwright module", "URL (sites) Limit", "Crawler/agressive speed/Low", "Crawler/agressive speed/Mid", "Crawler/agressive speed/High", "Custom Delay"]
 
 typeindex = [2, 3, 4]
 actionindex = [0, 5, 6, 7]
@@ -48,3 +51,12 @@ cnfdeep = 8
 cnftime = 0.1
 cnfhttp = 5
 cnfjs = 3
+
+qtreesit = """
+(call_expression
+  function: (identifier) @func.name
+  arguments: (arguments) @func.args
+
+  (#match? @func.name \"^(fetch|axios|request)$\")
+)
+"""
