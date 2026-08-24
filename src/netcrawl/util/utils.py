@@ -35,14 +35,14 @@ class NetCrawlAgent:
 
 def pather(cwd: str) -> str:
     try:
-        if cwd.endswith('crawler'):
+        if cwd.endswith('NetCrawl'):
             paths = "./src"
         elif cwd.endswith('src'):
             paths = "."
         elif cwd.endswith('netcrawl'):
             paths = ".."
-        elif not cwd.endswith('crawler'):
-            paths = "./crawler/src"
+        elif not cwd.endswith('NetCrawl'):
+            paths = "./NetCrawl/src"
         else: raise "Error/Path/NotFound"
 
         return paths
